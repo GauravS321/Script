@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gaurav's Directory</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes slideIn {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(0); }
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    @keyframes swing {
+      0% { transform: rotate(0deg); }
+      50% { transform: rotate(15deg); }
+      100% { transform: rotate(0deg); }
+    }
+    .ninja { animation: slideIn 2s infinite alternate; background: #ff4500; }
+    .doraemon { animation: bounce 1.5s infinite; background: #00b7eb; }
+    .spiderman { animation: swing 2s infinite; background: #dc143c; }
+    .character {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      text-align: center;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white">
+  <div id="welcome-page" class="h-screen flex flex-col items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600">
+    <h1 class="text-5xl font-bold mb-4 animate-pulse">Hi Boss!</h1>
+    <p class="text-2xl mb-8">You are doing a great work!</p>
+    <button id="enter-btn" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">Enter Gaurav's Directory</button>
+    <div class="character ninja top-10 left-10">Ninja Hattori</div>
+    <div class="character doraemon bottom-10 right-10">Doraemon</div>
+    <div class="character spiderman top-10 right-10">Spider-Man</div>
+  </div>
+  <div id="explorer-page" class="hidden p-8 bg-gray-800 min-h-screen">
+    <div class="flex items-center mb-4">
+      <h1 class="text-3xl font-bold">Gaurav's Directory</h1>
+      <div class="character ninja ml-4" style="width: 50px; height: 50px;">Ninja</div>
+    </div>
+    <div class="mb-4">
+      <input type="file" id="file-input" multiple class="mr-2 p-2 bg-gray-700 rounded">
+      <input type="file" id="folder-input" webkitdirectory directory multiple class="p-2 bg-gray-700 rounded">
+    </div>
+    <button id="back-btn" class="hidden mb-4 px-4 py-2 bg-blue-500 rounded hover:bg-blue-600">Back</button>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <h2 class="text-xl mb-2">Files & Folders</h2>
+        <ul id="file-list" class="bg-gray-700 p-4 rounded"></ul>
+      </div>
+      <div id="file-content" class="hidden">
+        <h2 class="text-xl mb-2">File Content</h2>
+        <pre id="content-display" class="bg-gray-700 p-4 rounded h-96 overflow-auto"></pre>
+      </div>
+    </div>
+    <div class="character doraemon fixed bottom-10 left-10">Doraemon</div>
+    <div class="character spiderman fixed bottom-10 right-10">Spider-Man</div>
+  </div>
+  <script>
+    const welcomePage = document.getElementById('welcome-page');
+    const explorerPage = document.getElementById('explorer-page');
+    const enterBtn = document.getElementById('enter-btn');
+    const fileInput = document.getElementById('file-input');
+    const folderInput = document.getElementById('folder-input');
+    const fileList = document.getElementById('file-list');
+    const backBtn = document.getElementById('back-btn');
+    const contentDisplay = document.getElementById('content-display');
+    const fileContent = document.getElementById('file-content');
+
+    let files = [];
+    let currentPath = [];
+
+    enterBtn.addEventListener('click', () => {
+      welcomePage.classList.add('hidden');
+      explorerPage.classList.remove('hidden');
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const uploadedFiles = Array.from(e.target.files);
+      uploadedFiles.forEach(file => {
+        files.push({
+          name: file.name,
+          type: 'file',
+          content: file,
+          path: [...currentPath, file.name].join('/')
+        });
+      });
+      renderFiles();
+    });
+
+    folderInput.addEventListener('change', (e) => {
+      const uploadedFiles = Array.from(e.target.files);
+      uploadedFiles.forEach(file => {
+        const pathParts = file.webkitRelativePath.split('/');
+        const name = pathParts.pop();
+        let folderPath = pathParts.join('/');
+        let existingFolder = files.find(f => f.path === folderPath && f.type === 'folder');
+        if (!existingFolder && folderPath) {
+          files.push({
+            name: pathParts[pathParts.length - 1],
+            type: 'folder',
+            path: folderPath,
+            children: []
+          });
+        }
+        files.push({
+          name,
+          type: 'file',
+          content: file,
+          path: file.webkitRelativePath
+        });
+      });
+      renderFiles();
+    });
+
+    backBtn.addEventListener('click', () => {
+      currentPath.pop();
+      renderFiles();
+      fileContent.classList.add('hidden');
+    });
+
+    function renderFiles() {
+      fileList.innerHTML = '';
+      const currentFiles = files.filter(file => {
+        const filePathParts = file.path.split('/');
+        return filePathParts.slice(0, currentPath.length).join('/') === currentPath.join('/');
+      });
+      if (currentPath.length > 0) {
+        backBtn.classList.remove('hidden');
+      } else {
+        backBtn.classList.add('hidden');
+      }
+      currentFiles.forEach(file => {
+        const li = document.createElement('li');
+        li.className = 'p-2 hover:bg-gray-600 cursor-pointer';
+        li.textContent = (file.type === 'folder' ? '📁 ' : '📄 ') + file.name;
+        li.addEventListener('click', () => {
+          if (file.type === 'folder') {
+            currentPath.push(file.name);
+            renderFiles();
+            fileContent.classList.add('hidden');
+          } else {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              contentDisplay.textContent = e.target.result;
+              fileContent.classList.remove('hidden');
+            };
+            reader.onerror = () => {
+              contentDisplay.textContent = 'Error reading file';
+              fileContent.classList.remove('hidden');
+            };
+            reader.readAsText(file.content);
+          }
+        });
+        fileList.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
